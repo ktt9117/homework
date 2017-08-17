@@ -24,20 +24,17 @@ import javax.net.ssl.X509TrustManager;
 
 
 public class APIRequest {
-
     private static final String DEFAULT_METHOD = HttpMethod.GET;
 
     private String requestUrl;
     private String method;
-    private String contentType;
     private int connectTimeout;
     private Map<String, String> headerMap;
 
-    private APIRequest(String requestUrl, String method, String contentType,
-                       int connectTimeout, Map<String, String> headerMap) {
+    private APIRequest(String requestUrl, String method, int connectTimeout,
+                       Map<String, String> headerMap) {
         this.requestUrl = requestUrl;
         this.method = method;
-        this.contentType = contentType;
         this.connectTimeout = connectTimeout;
         this.headerMap = headerMap;
     }
@@ -54,11 +51,12 @@ public class APIRequest {
             method = DEFAULT_METHOD;
         }
 
-        if (!this.requestUrl.toLowerCase().startsWith("http")) {
-            this.requestUrl = "http://" + requestUrl;
+        if (!this.requestUrl.toLowerCase().startsWith(Protocol.HTTP)) {
+            this.requestUrl = Protocol.HTTP + "://" + requestUrl;
         }
 
-        System.out.println("[send] requestUrl: " + requestUrl + ", method: " + method + ", contentType: " + contentType + ", connectTimeout : " + connectTimeout);
+        System.out.println("[send] requestUrl: " + requestUrl + ", method: " + method +
+                ", connectTimeout : " + connectTimeout);
 
         URL url;
         try {
@@ -74,7 +72,7 @@ public class APIRequest {
         while (redirect) {
             HttpURLConnection conn;
             try {
-                if (url.getProtocol().equals("https")) {
+                if (url.getProtocol().equals(Protocol.HTTPS)) {
                     System.out.println("try to https connection");
                     // TODO: This is dangerous way. You need to refactoring it later!
                     trustAll();
@@ -131,7 +129,6 @@ public class APIRequest {
                         in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                         String inputLine;
 
-
                         while ((inputLine = in.readLine()) != null) {
                             response.append(inputLine);
                         }
@@ -152,7 +149,6 @@ public class APIRequest {
                     redirect = false;
                     listener.onResult(resCode, conn.getResponseMessage());
                 }
-
             } catch (IOException e) {
                 e.printStackTrace();
                 listener.onResult(ErrorCode.IO_EXCEPTION, e.getMessage());
@@ -164,11 +160,15 @@ public class APIRequest {
         void onResult(int errorCode, String result);
     }
 
-    public static class APIRequestBuilder {
+    interface Protocol {
+        String HTTP = "http";
+        String HTTPS = "https";
+        String TLS = "TLS";
+    }
 
+    public static class APIRequestBuilder {
         private String requestUrl;
         private String method;
-        private String contentType;
         private int timeout;
         private Map<String, String> headerMap;
 
@@ -178,11 +178,6 @@ public class APIRequest {
 
         public APIRequestBuilder method(String method) {
             this.method = method;
-            return this;
-        }
-
-        public APIRequestBuilder contentType(String contentType) {
-            this.contentType = contentType;
             return this;
         }
 
@@ -197,35 +192,29 @@ public class APIRequest {
         }
 
         public APIRequest create() {
-            return new APIRequest(requestUrl, method, contentType, timeout, headerMap);
+            return new APIRequest(requestUrl, method, timeout, headerMap);
         }
     }
 
     private void trustAll() {
-        TrustManager[] trustAllCerts = new TrustManager[] {
-                new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new java.security.cert.X509Certificate[] {};
-                    }
+        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                    return new java.security.cert.X509Certificate[] {};
+                }
 
-                    @Override
-                    public void checkClientTrusted(
-                            java.security.cert.X509Certificate[] chain,
-                            String authType)
-                            throws java.security.cert.CertificateException {}
+                @Override
+                public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType)
+                        throws java.security.cert.CertificateException {}
 
-                    @Override
-                    public void checkServerTrusted(
-                            java.security.cert.X509Certificate[] chain,
-                            String authType)
-                            throws java.security.cert.CertificateException {}
-                }};
-
+                @Override
+                public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType)
+                        throws java.security.cert.CertificateException {}
+            }
+        };
         try {
-            SSLContext sc = SSLContext.getInstance("TLS");
-            sc.init(null, trustAllCerts, new java.security.SecureRandom());
-            HttpsURLConnection
-                    .setDefaultSSLSocketFactory(sc.getSocketFactory());
+            SSLContext sslContext = SSLContext.getInstance(Protocol.TLS);
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
         } catch (Exception e) {
             e.printStackTrace();
         }
