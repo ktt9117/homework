@@ -2,6 +2,8 @@ package com.nhnent.exam.netlibrary;
 
 import org.junit.Test;
 
+import java.util.concurrent.CountDownLatch;
+
 import static junit.framework.Assert.assertEquals;
 
 /**
@@ -11,32 +13,51 @@ public class APIRequestTest {
 
     @Test
     public void httpsTest() {
-        APIRequest APIRequest = new APIRequest.APIRequestBuilder("https://en.wikipedia.org/api/rest_v1/page/summary/google")
+
+        final CountDownLatch signal = new CountDownLatch(1);
+
+        APIRequest request = new APIRequest.APIRequestBuilder("https://en.wikipedia.org/api/rest_v1/page/summary/google")
                 .method(HttpMethod.GET)
                 .create();
 
-        APIRequest.send(new APIRequest.OnResultListener() {
+        request.send(new APIRequest.OnResultListener() {
             @Override
             public void onResult(int errorCode, String result) {
                 System.out.println("errorCode: " + errorCode + ", result: " + result);
                 assertEquals(errorCode, ErrorCode.NO_ERROR);
+                signal.countDown();
             }
         });
+
+        try {
+            signal.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
     public void httpTest() {
-        APIRequest APIRequest = new APIRequest.APIRequestBuilder("http://en.wikipedia.org/api/rest_v1/page/related/google")
+        final CountDownLatch signal = new CountDownLatch(1);
+
+        APIRequest request = new APIRequest.APIRequestBuilder("http://en.wikipedia.org/api/rest_v1/page/related/google")
                 .method(HttpMethod.GET)
                 .create();
 
-        APIRequest.send(new APIRequest.OnResultListener() {
+        request.send(new APIRequest.OnResultListener() {
             @Override
             public void onResult(int errorCode, String result) {
                 System.out.println("errorCode: " + errorCode + ", result: " + result);
                 assertEquals(errorCode, ErrorCode.NO_ERROR);
+                signal.countDown();
             }
         });
+
+        try {
+            signal.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 

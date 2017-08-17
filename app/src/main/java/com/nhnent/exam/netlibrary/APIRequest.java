@@ -23,7 +23,7 @@ import javax.net.ssl.X509TrustManager;
  */
 
 
-public class APIRequest {
+public class APIRequest extends Thread {
 
     private static final String DEFAULT_METHOD = HttpMethod.GET;
 
@@ -31,6 +31,7 @@ public class APIRequest {
     private String method;
     private String contentType;
     private int connectTimeout;
+    private OnResultListener listener;
     private Map<String, String> headerMap;
 
     private APIRequest(String requestUrl, String method, String contentType,
@@ -42,23 +43,9 @@ public class APIRequest {
         this.headerMap = headerMap;
     }
 
-    public void send(OnResultListener listener) {
-        if (TextUtils.isEmpty(this.requestUrl)) {
-            System.out.println("[send] invalid parameter: url is null");
-            listener.onResult(ErrorCode.INVALID_URL, null);
-            return;
-        }
-
-        if (method == null) {
-            System.out.println("[send] there is no assigned method. set default method to GET");
-            method = DEFAULT_METHOD;
-        }
-
-        if (!this.requestUrl.toLowerCase().startsWith("http")) {
-            this.requestUrl = "http://" + requestUrl;
-        }
-
-        System.out.println("[send] requestUrl: " + requestUrl + ", method: " + method + ", contentType: " + contentType + ", connectTimeout : " + connectTimeout);
+    @Override
+    public void run() {
+        super.run();
 
         URL url;
         try {
@@ -160,7 +147,30 @@ public class APIRequest {
         }
     }
 
-    interface OnResultListener {
+    public void send(OnResultListener listener) {
+        this.listener = listener;
+
+        if (TextUtils.isEmpty(this.requestUrl)) {
+            System.out.println("[send] invalid parameter: url is null");
+            listener.onResult(ErrorCode.INVALID_URL, null);
+            return;
+        }
+
+        if (method == null) {
+            System.out.println("[send] there is no assigned method. set default method to GET");
+            method = DEFAULT_METHOD;
+        }
+
+        if (!this.requestUrl.toLowerCase().startsWith("http")) {
+            this.requestUrl = "http://" + requestUrl;
+        }
+
+        System.out.println("[send] requestUrl: " + requestUrl + ", method: " + method + ", contentType: " + contentType + ", connectTimeout : " + connectTimeout);
+
+        start();
+    }
+
+    public interface OnResultListener {
         void onResult(int errorCode, String result);
     }
 
