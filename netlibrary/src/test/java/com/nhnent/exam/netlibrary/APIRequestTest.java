@@ -20,7 +20,7 @@ public class APIRequestTest {
 
         final CountDownLatch signal = new CountDownLatch(1);
 
-        APIRequest request = new APIRequest.APIRequestBuilder("https://en.wikipedia.org/api/rest_v1/page/summary/google")
+        APIRequest request = new APIRequest.APIRequestBuilder(SUMMARY_URL + "google")
                 .method(HttpMethod.GET)
                 .create();
 
@@ -43,8 +43,7 @@ public class APIRequestTest {
     @Test
     public void httpTest() {
         final CountDownLatch signal = new CountDownLatch(1);
-
-        APIRequest request = new APIRequest.APIRequestBuilder("http://en.wikipedia.org/api/rest_v1/page/related/google")
+        APIRequest request = new APIRequest.APIRequestBuilder(RELATED_URL + "google")
                 .method(HttpMethod.GET)
                 .create();
 
@@ -62,5 +61,20 @@ public class APIRequestTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void methodTest() {
+        APIRequest APIRequest = new APIRequest.APIRequestBuilder(TEST_ROOT)
+                .method(HttpMethod.GET)
+                .create();
+
+        APIRequest.send(new APIRequest.OnResultListener() {
+            @Override
+            public void onResult(int errorCode, String result) {
+                System.out.println("errorCode: " + errorCode + ", result: " + result);
+                assertEquals(errorCode, ErrorCode.NO_ERROR);
+            }
+        });
     }
 }

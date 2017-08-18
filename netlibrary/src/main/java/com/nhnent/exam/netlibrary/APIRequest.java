@@ -22,14 +22,11 @@ import javax.net.ssl.X509TrustManager;
  * Created by gradler on 17/08/2017.
  */
 
-
 public class APIRequest extends Thread {
-
     private static final String DEFAULT_METHOD = HttpMethod.GET;
 
     private String requestUrl;
     private String method;
-    private String contentType;
     private int connectTimeout;
     private OnResultListener listener;
     private Map<String, String> headerMap;
@@ -162,7 +159,8 @@ public class APIRequest extends Thread {
             this.requestUrl = "http://" + requestUrl;
         }
 
-        System.out.println("[send] requestUrl: " + requestUrl + ", method: " + method + ", contentType: " + contentType + ", connectTimeout : " + connectTimeout);
+        System.out.println("[send] requestUrl: " + requestUrl + ", method: " + method +
+                ", contentType: " + ", connectTimeout : " + connectTimeout);
 
         start();
     }
