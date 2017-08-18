@@ -1,75 +1,88 @@
 package com.nhnent.exam.wikisearch;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.text.Html;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
+import com.nhnent.exam.netlibrary.APIRequest;
+import com.nhnent.exam.netlibrary.ErrorCode;
+import com.nhnent.exam.netlibrary.ImageLoader;
+import com.nhnent.exam.wikisearch.adapters.WikiAdapter;
+import com.nhnent.exam.wikisearch.models.WikiModel;
 
-/**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link WikiFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link WikiFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-public class WikiFragment extends Fragment {
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelectedListener {
 
     private static final String TAG = WikiFragment.class.getSimpleName();
-    private static final String ARG_QUERY = "query";
     private String mQuery;
     private OnFragmentInteractionListener mListener;
+
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private List<WikiModel> mContentList;
+    private ImageLoader mImageLoader;
+    private WikiAdapter mAdapter;
 
     public WikiFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param query Parameter 1.
-     * @return A new instance of fragment WikiFragment.
-     */
     public static WikiFragment newInstance(String query) {
         WikiFragment fragment = new WikiFragment();
         Bundle args = new Bundle();
-        args.putString(ARG_QUERY, query);
+        args.putString(Const.INTENT_KEY_QUERY, query);
         fragment.setArguments(args);
         return fragment;
-    }
-
-    public void setOnFragmentInteractionListener(OnFragmentInteractionListener listener) {
-        mListener = listener;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.e(TAG, "onCreate");
         if (getArguments() != null) {
-            mQuery = getArguments().getString(ARG_QUERY);
-            getActivity().setTitle(mQuery);
+            mQuery = getArguments().getString(Const.INTENT_KEY_QUERY);
         }
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_wiki, container, false);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Log.e(TAG, "onCreateView");
+        View view = inflater.inflate(R.layout.fragment_wiki, container, false);
+        initSwipeRefreshLayout(view);
+        initRecyclerView(view);
+        updateActionBar();
+        return view;
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        Log.e(TAG, "onActivtyCreated");
         super.onActivityCreated(savedInstanceState);
+        requestSummary(mQuery);
+        requestRelated(mQuery);
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
     public void onButtonPressed(Uri uri) {
         if (mListener != null) {
             mListener.onFragmentInteraction(uri);
@@ -78,6 +91,7 @@ public class WikiFragment extends Fragment {
 
     @Override
     public void onAttach(Context context) {
+        Log.e(TAG, "onAttach");
         super.onAttach(context);
         if (context instanceof OnFragmentInteractionListener) {
             mListener = (OnFragmentInteractionListener) context;
@@ -89,22 +103,203 @@ public class WikiFragment extends Fragment {
 
     @Override
     public void onDetach() {
+        Log.e(TAG, "onDetach");
         super.onDetach();
         mListener = null;
     }
 
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
+    @Override
+    public void onPrepareOptionsMenu(Menu menu) {
+        if (getFragmentManager().getBackStackEntryCount() > 0) {
+            menu.clear();
+        }
+        super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            getActivity().getSupportFragmentManager().popBackStack();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onResume() {
+        Log.e(TAG, "onResume");
+        super.onResume();
+    }
+
+    @Override
+    public void onItemSelected(WikiModel item) {
+        if (item.isHeader()) {
+            Intent intent = new Intent(getActivity(), WikiDetailActivity.class);
+            intent.putExtra(Const.INTENT_KEY_QUERY, item.getDisplayTitle());
+            startActivity(intent);
+
+        } else {
+            WikiFragment fragment = WikiFragment.newInstance(item.getDisplayTitle());
+            fragment.setImageLoader(mImageLoader);
+            getActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(R.anim.left_in, R.anim.left_out)
+                    .replace(R.id.main_fragment_container, fragment)
+                    .addToBackStack(item.getDisplayTitle())
+                    .commit();
+        }
+    }
+
     public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
         void onFragmentInteraction(Uri uri);
+    }
+
+    public void setImageLoader(ImageLoader imageLoader) {
+        mImageLoader = imageLoader;
+    }
+
+    private void updateActionBar() {
+        if (getFragmentManager().getBackStackEntryCount() > 0) {
+            setHasOptionsMenu(true);
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            }
+
+        } else {
+            getActivity().invalidateOptionsMenu();
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+            }
+        }
+
+        getActivity().setTitle(mQuery);
+    }
+
+    private void initSwipeRefreshLayout(View view) {
+        mSwipeRefreshLayout = view.findViewById(R.id.wiki_swipe_refresh_layout);
+        mSwipeRefreshLayout.setEnabled(false);
+        // TODO: You need to implements custom progress view
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                if (mQuery != null) {
+                    int itemCount = mContentList.size();
+                    mContentList.clear();
+                    mAdapter.notifyItemRangeRemoved(0, itemCount);
+                    requestSummary(mQuery);
+                    requestRelated(mQuery);
+                }
+            }
+        });
+    }
+
+    private void initRecyclerView(View view) {
+        RecyclerView recyclerView = view.findViewById(R.id.wiki_recycler_view);
+        recyclerView.setHasFixedSize(true);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getContext());
+        recyclerView.setLayoutManager(layoutManager);
+        mContentList = new ArrayList<>();
+        mAdapter = new WikiAdapter(getContext(), mContentList, mImageLoader);
+        mAdapter.setOnItemSelectedListener(this);
+        recyclerView.setAdapter(mAdapter);
+    }
+
+    private void requestSummary(String query) {
+        String requestUrl = Const.SUMMARY_URL + query;
+        APIRequest request = new APIRequest.APIRequestBuilder(requestUrl)
+                .context(getContext())
+                .create();
+        request.send(new APIRequest.OnResultListener() {
+            @Override
+            public void onResult(int errorCode, String result) {
+                Log.d(TAG, "errorCode: " + errorCode + ", result: " + result);
+                if (errorCode != ErrorCode.NO_ERROR) {
+                    Toast.makeText(getActivity(), "Request fail(" + result + ")", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                WikiModel header = null;
+                try {
+                    header = convertModel(new JSONObject(result));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    Toast.makeText(getActivity(), "Failed to convert result to json", Toast.LENGTH_SHORT).show();
+                }
+
+                if (header != null) {
+                    header.setHeader(true);
+                    mContentList.add(0, header);
+                    getActivity().setTitle(header.getDisplayTitle());
+                }
+            }
+        });
+    }
+
+    private void requestRelated(String query) {
+        String requestUrl = Const.RELATED_URL + query;
+        APIRequest request = new APIRequest.APIRequestBuilder(requestUrl)
+                .context(getContext())
+                .create();
+        request.send(new APIRequest.OnResultListener() {
+            @Override
+            public void onResult(int errorCode, String result) {
+                Log.d(TAG, "errorCode: " + errorCode + ", result: " + result);
+                if (errorCode != ErrorCode.NO_ERROR) {
+                    Toast.makeText(getActivity(), "Request fail(" + result + ")", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                try {
+                    JSONObject json = new JSONObject(result);
+                    JSONArray pages = json.getJSONArray("pages");
+                    int loopCnt = pages.length();
+                    Log.d(TAG, "pages count : " + loopCnt);
+                    for (int i = 0; i < loopCnt; i++) {
+                        WikiModel model = convertModel(pages.getJSONObject(i));
+                        if (model != null) {
+                            mContentList.add(model);
+                        }
+                    }
+
+                    mAdapter.notifyItemRangeInserted(0, mContentList.size());
+                    mSwipeRefreshLayout.setRefreshing(false);
+                    mSwipeRefreshLayout.setEnabled(true);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    private WikiModel convertModel(JSONObject json) {
+        try {
+            WikiModel model = new WikiModel();
+            String displayTitle = json.getString("displaytitle");
+            if (!TextUtils.isEmpty(displayTitle)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    String convertedTitle = Html.fromHtml(displayTitle, Html.FROM_HTML_MODE_COMPACT).toString();
+                    model.setDisplayTitle(convertedTitle);
+                } else {
+                    model.setDisplayTitle(Html.fromHtml(displayTitle).toString());
+                }
+            }
+            Log.i(TAG, "[convertModel] displayTitle: " + model.getDisplayTitle());
+            model.setExtractText(json.getString("extract"));
+            Log.i(TAG, "[convertModel] extract: " + model.getExtractText());
+            if (json.has("thumbnail")) {
+                JSONObject jsonThumbnail = json.getJSONObject("thumbnail");
+                model.setThumbnailUrl((jsonThumbnail.getString("source")));
+                Log.i(TAG, "[convertModel] thumbnailUrl: " + model.getThumbnailUrl());
+            } else {
+                Log.i(TAG, "[convertModel] it has no thumbnailUrl");
+            }
+
+            return model;
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }

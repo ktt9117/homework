@@ -83,7 +83,7 @@ public class WikiAdapter extends RecyclerView.Adapter<WikiAdapter.ViewHolder> {
             @Override
             public void onClick(View view) {
                 if (mOnItemSelectedListener != null) {
-                    mOnItemSelectedListener.onItemSelect(item);
+                    mOnItemSelectedListener.onItemSelected(item);
                 }
             }
         });
@@ -115,6 +115,6 @@ public class WikiAdapter extends RecyclerView.Adapter<WikiAdapter.ViewHolder> {
     }
 
     public interface OnItemSelectedListener {
-        void onItemSelect(WikiModel item);
+        void onItemSelected(WikiModel item);
     }
 }
