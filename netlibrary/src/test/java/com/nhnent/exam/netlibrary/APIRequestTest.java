@@ -28,7 +28,7 @@ public class APIRequestTest {
             @Override
             public void onResult(int errorCode, String result) {
                 System.out.println("errorCode: " + errorCode + ", result: " + result);
-                assertEquals(errorCode, ErrorCode.NO_ERROR);
+                assertEquals(ErrorCode.NO_ERROR, errorCode);
                 signal.countDown();
             }
         });
@@ -51,7 +51,7 @@ public class APIRequestTest {
             @Override
             public void onResult(int errorCode, String result) {
                 System.out.println("errorCode: " + errorCode + ", result: " + result);
-                assertEquals(errorCode, ErrorCode.NO_ERROR);
+                assertEquals(ErrorCode.NO_ERROR, errorCode);
                 signal.countDown();
             }
         });
@@ -73,7 +73,7 @@ public class APIRequestTest {
             @Override
             public void onResult(int errorCode, String result) {
                 System.out.println("errorCode: " + errorCode + ", result: " + result);
-                assertEquals(errorCode, ErrorCode.NO_ERROR);
+                assertEquals(ErrorCode.NO_ERROR, errorCode);
             }
         });
     }

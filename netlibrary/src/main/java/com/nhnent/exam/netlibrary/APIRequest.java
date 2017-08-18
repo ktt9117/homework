@@ -1,5 +1,7 @@
 package com.nhnent.exam.netlibrary;
 
+import android.content.Context;
+import android.os.Handler;
 import android.text.TextUtils;
 
 import java.io.BufferedReader;
@@ -30,9 +32,11 @@ public class APIRequest extends Thread {
     private int connectTimeout;
     private OnResultListener listener;
     private Map<String, String> headerMap;
+    private Context context;
 
-    private APIRequest(String requestUrl, String method, int connectTimeout,
+    private APIRequest(Context context, String requestUrl, String method, int connectTimeout,
                        Map<String, String> headerMap) {
+        this.context = context;
         this.requestUrl = requestUrl;
         this.method = method;
         this.connectTimeout = connectTimeout;
@@ -48,7 +52,7 @@ public class APIRequest extends Thread {
             url = new URL(this.requestUrl);
         } catch (MalformedURLException e) {
             e.printStackTrace();
-            listener.onResult(ErrorCode.INVALID_URL, e.getMessage());
+            sendResult(ErrorCode.INVALID_URL, e.getMessage());
             return;
         }
 
@@ -72,7 +76,7 @@ public class APIRequest extends Thread {
 
             } catch (IOException e) {
                 e.printStackTrace();
-                listener.onResult(ErrorCode.OPEN_CONNECTION_FAILED, e.getMessage());
+                sendResult(ErrorCode.OPEN_CONNECTION_FAILED, e.getMessage());
                 return;
             }
 
@@ -80,7 +84,7 @@ public class APIRequest extends Thread {
                 conn.setRequestMethod(method);
             } catch (ProtocolException e) {
                 e.printStackTrace();
-                listener.onResult(ErrorCode.INVALID_METHOD, e.getMessage());
+                sendResult(ErrorCode.INVALID_METHOD, e.getMessage());
                 return;
             }
 
@@ -125,18 +129,18 @@ public class APIRequest extends Thread {
                     }
 
                     redirect = false;
-                    listener.onResult(errorCode, response.toString());
+                    sendResult(errorCode, response.toString());
 
                 } else if (resCode == HttpURLConnection.HTTP_MOVED_PERM || resCode == HttpURLConnection.HTTP_MOVED_TEMP) {
                     url = new URL(conn.getHeaderField("Location"));
 
                 } else {
                     redirect = false;
-                    listener.onResult(resCode, conn.getResponseMessage());
+                    sendResult(resCode, conn.getResponseMessage());
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                listener.onResult(ErrorCode.IO_EXCEPTION, e.getMessage());
+                sendResult(ErrorCode.IO_EXCEPTION, e.getMessage());
             }
         }
     }
@@ -146,7 +150,7 @@ public class APIRequest extends Thread {
 
         if (TextUtils.isEmpty(this.requestUrl)) {
             System.out.println("[send] invalid parameter: url is null");
-            listener.onResult(ErrorCode.INVALID_URL, null);
+            sendResult(ErrorCode.INVALID_URL, null);
             return;
         }
 
@@ -175,7 +179,21 @@ public class APIRequest extends Thread {
         String TLS = "TLS";
     }
 
+    private void sendResult(final int errorCode, final String result) {
+        if (context != null) {
+            new Handler(context.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    listener.onResult(errorCode, result);
+                }
+            });
+        } else {
+            listener.onResult(errorCode, result);
+        }
+    }
+
     public static class APIRequestBuilder {
+        private Context context;
         private String requestUrl;
         private String method;
         private int timeout;
@@ -183,6 +201,11 @@ public class APIRequest extends Thread {
 
         public APIRequestBuilder(String requestUrl) {
             this.requestUrl = requestUrl;
+        }
+
+        public APIRequestBuilder context(Context context) {
+            this.context = context;
+            return this;
         }
 
         public APIRequestBuilder method(String method) {
@@ -201,7 +224,7 @@ public class APIRequest extends Thread {
         }
 
         public APIRequest create() {
-            return new APIRequest(requestUrl, method, timeout, headerMap);
+            return new APIRequest(context, requestUrl, method, timeout, headerMap);
         }
     }
 
@@ -220,6 +243,7 @@ public class APIRequest extends Thread {
                         throws java.security.cert.CertificateException {}
             }
         };
+
         try {
             SSLContext sslContext = SSLContext.getInstance(Protocol.TLS);
             sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
