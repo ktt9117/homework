@@ -11,6 +11,10 @@ import static junit.framework.Assert.assertEquals;
  */
 public class APIRequestTest {
 
+    private static final String TEST_ROOT = "http://www.mocky.io/v2/5185415ba171ea3a00704eed";
+    private static final String SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/";
+    private static final String RELATED_URL = "http://en.wikipedia.org/api/rest_v1/page/related/";
+
     @Test
     public void httpsTest() {
 
@@ -59,6 +63,4 @@ public class APIRequestTest {
             e.printStackTrace();
         }
     }
-
-
 }

@@ -1,1 +1,1 @@
-include ':app', ':wikisearch'
+include ':wikisearch', ':netlibrary'
