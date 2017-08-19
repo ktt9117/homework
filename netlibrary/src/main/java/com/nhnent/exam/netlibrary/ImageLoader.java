@@ -18,7 +18,7 @@ import java.net.URL;
 
 public class ImageLoader {
 
-    private LruCache<String, Bitmap> mMemCache;
+    private final LruCache<String, Bitmap> mMemCache;
 
     public ImageLoader() {
         int cacheSize = ((int) (Runtime.getRuntime().maxMemory() / 1024)) / 8;
@@ -94,10 +94,9 @@ public class ImageLoader {
         }
     }
 
-    private boolean clear(String key) {
+    private void clear(String key) {
         synchronized (mMemCache) {
             mMemCache.remove(key);
-            return true;
         }
     }
 
@@ -133,9 +132,9 @@ public class ImageLoader {
     }
 
     class BitmapLoadThread extends Thread {
-        private String path;
-        private OnResultListener listener;
-        private Context context;
+        final private String path;
+        final private OnResultListener listener;
+        final private Context context;
 
         public BitmapLoadThread(Context context, String path, OnResultListener listener) {
             this.context = context;

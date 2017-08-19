@@ -1,6 +1,4 @@
 <resources>
     <string name="app_name">WikiSearch</string>
     <string name="search_title">Search</string>
-
-    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

@@ -1,13 +1,12 @@
 package com.nhnent.exam.wikisearch;
 
-import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Html;
@@ -40,7 +39,6 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
 
     private static final String TAG = WikiFragment.class.getSimpleName();
     private String mQuery;
-    private OnFragmentInteractionListener mListener;
 
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private List<WikiModel> mContentList;
@@ -62,7 +60,7 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.e(TAG, "onCreate");
+        Log.i(TAG, "onCreate");
         if (getArguments() != null) {
             mQuery = getArguments().getString(Const.INTENT_KEY_QUERY);
         }
@@ -70,7 +68,7 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        Log.e(TAG, "onCreateView");
+        Log.i(TAG, "onCreateView");
         View view = inflater.inflate(R.layout.fragment_wiki, container, false);
         initSwipeRefreshLayout(view);
         initRecyclerView(view);
@@ -80,35 +78,10 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        Log.e(TAG, "onActivtyCreated");
+        Log.i(TAG, "onActivtyCreated");
         super.onActivityCreated(savedInstanceState);
         requestSummary(mQuery);
         requestRelated(mQuery);
-    }
-
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
-    @Override
-    public void onAttach(Context context) {
-        Log.e(TAG, "onAttach");
-        super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
-        } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
-    }
-
-    @Override
-    public void onDetach() {
-        Log.e(TAG, "onDetach");
-        super.onDetach();
-        mListener = null;
     }
 
     @Override
@@ -126,12 +99,6 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onResume() {
-        Log.e(TAG, "onResume");
-        super.onResume();
     }
 
     @Override
@@ -153,10 +120,6 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
         }
     }
 
-    public interface OnFragmentInteractionListener {
-        void onFragmentInteraction(Uri uri);
-    }
-
     public void setImageLoader(ImageLoader imageLoader) {
         mImageLoader = imageLoader;
     }
@@ -165,13 +128,19 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
         if (getFragmentManager().getBackStackEntryCount() > 0) {
             setHasOptionsMenu(true);
             if (getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                ActionBar actionBar = ((MainActivity) getActivity()).getSupportActionBar();
+                if (actionBar != null) {
+                    actionBar.setDisplayHomeAsUpEnabled(true);
+                }
             }
 
         } else {
             getActivity().invalidateOptionsMenu();
             if (getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+                ActionBar actionBar = ((MainActivity) getActivity()).getSupportActionBar();
+                if (actionBar != null) {
+                    actionBar.setDisplayHomeAsUpEnabled(false);
+                }
             }
         }
 
@@ -259,6 +228,7 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
                     for (int i = 0; i < loopCnt; i++) {
                         WikiModel model = convertModel(pages.getJSONObject(i));
                         if (model != null) {
+                            model.setHeader(false);
                             mContentList.add(model);
                         }
                     }

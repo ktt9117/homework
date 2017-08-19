@@ -4,7 +4,7 @@
     android:id="@+id/wiki_swipe_refresh_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
+    style="@style/FragmentTheme"
     tools:context="com.nhnent.exam.wikisearch.WikiFragment" >
 
     <android.support.v7.widget.RecyclerView

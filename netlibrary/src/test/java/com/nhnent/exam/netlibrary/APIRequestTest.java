@@ -2,6 +2,8 @@ package com.nhnent.exam.netlibrary;
 
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import static junit.framework.Assert.assertEquals;
@@ -96,10 +98,10 @@ public class APIRequestTest {
     public void putMethodTest() {
         final CountDownLatch signal = new CountDownLatch(1);
 
-        APIRequest APIRequest = new APIRequest.APIRequestBuilder(TEST_ROOT + "posts")
+        APIRequest APIRequest = new APIRequest.APIRequestBuilder(TEST_ROOT + "posts/1")
                 .method(HttpMethod.PUT)
                 .body("data: {\n" +
-                        "    id: 4,\n" +
+                        "    id: 1,\n" +
                         "    title: 'foo_fix',\n" +
                         "    body: 'bar_fix',\n" +
                         "    userId: 1\n" +
@@ -128,6 +130,58 @@ public class APIRequestTest {
 
         APIRequest APIRequest = new APIRequest.APIRequestBuilder(TEST_ROOT + "posts/1")
                 .method(HttpMethod.DELETE)
+                .create();
+
+        APIRequest.send(new APIRequest.OnResultListener() {
+            @Override
+            public void onResult(int errorCode, String result) {
+                System.out.println(String.format("errorCode: %d, result: %s", errorCode, result));
+                assertEquals(ErrorCode.NO_ERROR, errorCode);
+                signal.countDown();
+            }
+        });
+
+        try {
+            signal.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void timeoutTest() {
+        final CountDownLatch signal = new CountDownLatch(1);
+
+        APIRequest APIRequest = new APIRequest.APIRequestBuilder("google.com:81")
+                .method(HttpMethod.GET)
+                .timeout(5000)
+                .create();
+
+        APIRequest.send(new APIRequest.OnResultListener() {
+            @Override
+            public void onResult(int errorCode, String result) {
+                System.out.println(String.format("errorCode: %d, result: %s", errorCode, result));
+                assertEquals(ErrorCode.CONNECTION_TIMED_OUT, errorCode);
+                signal.countDown();
+            }
+        });
+
+        try {
+            signal.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void requestHeaderTest() {
+        final CountDownLatch signal = new CountDownLatch(1);
+
+        Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("Accept-Language", "ko-KR");
+        APIRequest APIRequest = new APIRequest.APIRequestBuilder(SUMMARY_URL + "google")
+                .method(HttpMethod.GET)
+                .header(headerMap)
                 .create();
 
         APIRequest.send(new APIRequest.OnResultListener() {

@@ -25,7 +25,8 @@ public class WikiDetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        if (getSupportActionBar() != null)
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         String query = getIntent().getStringExtra(Const.INTENT_KEY_QUERY);
         Log.i(TAG, "arg: " + query);

@@ -8,18 +8,15 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.Map;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 /**
  * Created by gradler on 17/08/2017.
@@ -28,22 +25,63 @@ import javax.net.ssl.X509TrustManager;
 public class APIRequest extends Thread {
     private static final String DEFAULT_METHOD = HttpMethod.GET;
 
+    final private Context context;
+    final private Map<String, String> headerMap;
+    final private String body;
+    final private int connectTimeout;
+    private OnResultListener listener;
     private String requestUrl;
     private String method;
-    private String body;
-    private int connectTimeout;
-    private OnResultListener listener;
-    private Map<String, String> headerMap;
-    private Context context;
 
-    private APIRequest(Context context, String requestUrl, String method, String body,
-                       int connectTimeout, Map<String, String> headerMap) {
-        this.context = context;
-        this.requestUrl = requestUrl;
-        this.method = method;
-        this.body = body;
-        this.connectTimeout = connectTimeout;
-        this.headerMap = headerMap;
+    public static class APIRequestBuilder {
+        final private String requestUrl;
+        private Map<String, String> headerMap;
+        private Context context;
+        private String method;
+        private String body;
+        private int timeout;
+
+        public APIRequestBuilder(String requestUrl) {
+            this.requestUrl = requestUrl;
+        }
+
+        public APIRequestBuilder context(Context context) {
+            this.context = context;
+            return this;
+        }
+
+        public APIRequestBuilder method(String method) {
+            this.method = method;
+            return this;
+        }
+
+        public APIRequestBuilder timeout(int timeInMillis) {
+            this.timeout = timeInMillis;
+            return this;
+        }
+
+        public APIRequestBuilder header(Map<String, String> headerMap) {
+            this.headerMap = headerMap;
+            return this;
+        }
+
+        public APIRequestBuilder body(String body) {
+            this.body = body;
+            return this;
+        }
+
+        public APIRequest create() {
+            return new APIRequest(this);
+        }
+    }
+
+    private APIRequest(APIRequestBuilder builder) {
+        context = builder.context;
+        requestUrl = builder.requestUrl;
+        method = builder.method;
+        body = builder.body;
+        connectTimeout = builder.timeout;
+        headerMap = builder.headerMap;
     }
 
     @Override
@@ -66,8 +104,7 @@ public class APIRequest extends Thread {
             try {
                 if (url.getProtocol().equals(Protocol.HTTPS)) {
                     System.out.println("try to https connection");
-                    HttpsURLConnection httpsConn = (HttpsURLConnection) url.openConnection();
-                    conn = httpsConn;
+                    conn = (HttpsURLConnection) url.openConnection();
 
                 } else {
                     System.out.println("try to http connection");
@@ -94,6 +131,8 @@ public class APIRequest extends Thread {
 
             if (headerMap != null) {
                 for (Map.Entry<String, String> entry : headerMap.entrySet()) {
+                    System.out.println(String.format("[send] set header key: %s, value: %s",
+                            entry.getKey(), entry.getValue()));
                     conn.setRequestProperty(entry.getKey(), entry.getValue());
                 }
             }
@@ -124,12 +163,13 @@ public class APIRequest extends Thread {
                 int resCode;
                 resCode = conn.getResponseCode();
                 System.out.println("[send] responseCode: " + resCode);
+
                 if (resCode == HttpURLConnection.HTTP_OK
                         || resCode == HttpURLConnection.HTTP_ACCEPTED
                         || resCode == HttpURLConnection.HTTP_CREATED) {
                     int errorCode = ErrorCode.NO_ERROR;
                     BufferedReader in = null;
-                    StringBuffer response = new StringBuffer();
+                    StringBuilder response = new StringBuilder();
                     try {
                         in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                         String inputLine;
@@ -141,7 +181,9 @@ public class APIRequest extends Thread {
                         e.printStackTrace();
                         errorCode = ErrorCode.IO_EXCEPTION;
                     } finally {
-                        in.close();
+                        if (in != null) {
+                            in.close();
+                        }
                     }
 
                     redirect = false;
@@ -154,6 +196,12 @@ public class APIRequest extends Thread {
                     redirect = false;
                     sendResult(resCode, conn.getResponseMessage());
                 }
+            } catch (ConnectException ce) {
+                ce.printStackTrace();
+                sendResult(ErrorCode.CONNECTION_REFUSED, ce.getMessage());
+            } catch (SocketTimeoutException ste) {
+                ste.printStackTrace();
+                sendResult(ErrorCode.CONNECTION_TIMED_OUT, ste.getMessage());
             } catch (IOException e) {
                 e.printStackTrace();
                 sendResult(ErrorCode.IO_EXCEPTION, e.getMessage());
@@ -192,7 +240,6 @@ public class APIRequest extends Thread {
     interface Protocol {
         String HTTP = "http";
         String HTTPS = "https";
-        String TLS = "TLS";
     }
 
     private void sendResult(final int errorCode, final String result) {
@@ -207,78 +254,4 @@ public class APIRequest extends Thread {
             listener.onResult(errorCode, result);
         }
     }
-
-    public static class APIRequestBuilder {
-        private Context context;
-        private String requestUrl;
-        private String method;
-        private int timeout;
-        private String body;
-        private Map<String, String> headerMap;
-
-        public APIRequestBuilder(String requestUrl) {
-            this.requestUrl = requestUrl;
-        }
-
-        public APIRequestBuilder context(Context context) {
-            this.context = context;
-            return this;
-        }
-
-        public APIRequestBuilder method(String method) {
-            this.method = method;
-            return this;
-        }
-
-        public APIRequestBuilder timeout(int timeInMillis) {
-            this.timeout = timeInMillis;
-            return this;
-        }
-
-        public APIRequestBuilder header(Map<String, String> headerMap) {
-            this.headerMap = headerMap;
-            return this;
-        }
-
-        public APIRequestBuilder body(String body) {
-            this.body = body;
-            return this;
-        }
-
-        public APIRequest create() {
-            return new APIRequest(context, requestUrl, method, body, timeout, headerMap);
-        }
-    }
-
-    private void trustAll() {
-        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
-                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                    return new java.security.cert.X509Certificate[] {};
-                }
-
-                @Override
-                public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType)
-                        throws java.security.cert.CertificateException {}
-
-                @Override
-                public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType)
-                        throws java.security.cert.CertificateException {}
-            }
-        };
-
-        try {
-            SSLContext sslContext = SSLContext.getInstance("TLSv1.2"); //Protocol.TLS
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static final HostnameVerifier HOSTNAME_VERIFIER = new HostnameVerifier() {
-        @Override
-        public boolean verify(String s, SSLSession sslSession) {
-            return true;
-        }
-    };
 }

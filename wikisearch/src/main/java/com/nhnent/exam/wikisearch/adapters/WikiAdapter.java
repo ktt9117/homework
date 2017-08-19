@@ -22,14 +22,13 @@ import java.util.List;
  */
 
 public class WikiAdapter extends RecyclerView.Adapter<WikiAdapter.ViewHolder> {
-    private static final String TAG = WikiAdapter.class.getSimpleName();
 
-    public static final int ITEM_TYPE_HEADER = 0;
-    public static final int ITEM_TYPE_CONTENT = 1;
+    private static final int ITEM_TYPE_HEADER = 0;
+    private static final int ITEM_TYPE_CONTENT = 1;
 
-    private Context mContext;
-    private List<WikiModel> mContentList;
-    private ImageLoader mImageLoader;
+    final private Context mContext;
+    final private List<WikiModel> mContentList;
+    final private ImageLoader mImageLoader;
     private OnItemSelectedListener mOnItemSelectedListener;
 
     public WikiAdapter(Context context, List<WikiModel> contentList, ImageLoader imageLoader) {
@@ -100,10 +99,10 @@ public class WikiAdapter extends RecyclerView.Adapter<WikiAdapter.ViewHolder> {
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
 
-        public RelativeLayout layout;
-        public ImageView thumbnailView;
-        public TextView titleView;
-        public TextView extractView;
+        final public RelativeLayout layout;
+        final public ImageView thumbnailView;
+        final public TextView titleView;
+        final public TextView extractView;
 
         public ViewHolder(View itemView) {
             super(itemView);

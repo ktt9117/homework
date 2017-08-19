@@ -12,5 +12,7 @@ public interface ErrorCode {
     int INVALID_METHOD = 1002;
 
     int OPEN_CONNECTION_FAILED = 1100;
-    int IO_EXCEPTION = 9000;
+    int IO_EXCEPTION = 2000;
+    int CONNECTION_TIMED_OUT = 2100;
+    int CONNECTION_REFUSED = 2200;
 }

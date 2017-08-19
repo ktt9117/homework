@@ -1,6 +1,5 @@
 package com.nhnent.exam.wikisearch;
 
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
@@ -12,9 +11,7 @@ import com.nhnent.exam.netlibrary.ImageLoader;
 /**
  * Created by gradler on 18/08/2017.
  */
-public class MainActivity extends AppCompatActivity implements WikiFragment.OnFragmentInteractionListener {
-
-    private static final String TAG = MainActivity.class.getSimpleName();
+public class MainActivity extends AppCompatActivity {
 
     private ImageLoader mImageLoader;
 
@@ -61,10 +58,5 @@ public class MainActivity extends AppCompatActivity implements WikiFragment.OnFr
 
         searchView.requestFocus();
         return true;
-    }
-
-    @Override
-    public void onFragmentInteraction(Uri uri) {
-
     }
 }
