@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.text.TextUtils;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -29,16 +30,18 @@ public class APIRequest extends Thread {
 
     private String requestUrl;
     private String method;
+    private String body;
     private int connectTimeout;
     private OnResultListener listener;
     private Map<String, String> headerMap;
     private Context context;
 
-    private APIRequest(Context context, String requestUrl, String method, int connectTimeout,
-                       Map<String, String> headerMap) {
+    private APIRequest(Context context, String requestUrl, String method, String body,
+                       int connectTimeout, Map<String, String> headerMap) {
         this.context = context;
         this.requestUrl = requestUrl;
         this.method = method;
+        this.body = body;
         this.connectTimeout = connectTimeout;
         this.headerMap = headerMap;
     }
@@ -63,10 +66,7 @@ public class APIRequest extends Thread {
             try {
                 if (url.getProtocol().equals(Protocol.HTTPS)) {
                     System.out.println("try to https connection");
-                    // TODO: This is dangerous way. You need to refactoring it later!
-                    trustAll();
                     HttpsURLConnection httpsConn = (HttpsURLConnection) url.openConnection();
-                    httpsConn.setHostnameVerifier(HOSTNAME_VERIFIER);
                     conn = httpsConn;
 
                 } else {
@@ -101,16 +101,32 @@ public class APIRequest extends Thread {
             conn.setDoInput(true);
             conn.setUseCaches(false);
 
-            if (method.equalsIgnoreCase(HttpMethod.POST)) {
+            if (method.equalsIgnoreCase(HttpMethod.POST)
+                    || method.equalsIgnoreCase(HttpMethod.PUT)) {
+                System.out.println("[send] method equals POST or PUT");
                 conn.setDoOutput(true);
-                // TODO: if you need to pass request body, you should implement here.
+                if (body != null && body.length() > 0) {
+                    System.out.println("[send] write request body: " + body);
+                    try {
+                        DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
+                        dos.writeBytes(body);
+                        dos.flush();
+                        dos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    System.out.println("[send] request body is empty");
+                }
             }
 
             try {
                 int resCode;
                 resCode = conn.getResponseCode();
                 System.out.println("[send] responseCode: " + resCode);
-                if (resCode == HttpURLConnection.HTTP_OK || resCode == HttpURLConnection.HTTP_ACCEPTED) {
+                if (resCode == HttpURLConnection.HTTP_OK
+                        || resCode == HttpURLConnection.HTTP_ACCEPTED
+                        || resCode == HttpURLConnection.HTTP_CREATED) {
                     int errorCode = ErrorCode.NO_ERROR;
                     BufferedReader in = null;
                     StringBuffer response = new StringBuffer();
@@ -197,6 +213,7 @@ public class APIRequest extends Thread {
         private String requestUrl;
         private String method;
         private int timeout;
+        private String body;
         private Map<String, String> headerMap;
 
         public APIRequestBuilder(String requestUrl) {
@@ -223,8 +240,13 @@ public class APIRequest extends Thread {
             return this;
         }
 
+        public APIRequestBuilder body(String body) {
+            this.body = body;
+            return this;
+        }
+
         public APIRequest create() {
-            return new APIRequest(context, requestUrl, method, timeout, headerMap);
+            return new APIRequest(context, requestUrl, method, body, timeout, headerMap);
         }
     }
 
@@ -245,7 +267,7 @@ public class APIRequest extends Thread {
         };
 
         try {
-            SSLContext sslContext = SSLContext.getInstance(Protocol.TLS);
+            SSLContext sslContext = SSLContext.getInstance("TLSv1.2"); //Protocol.TLS
             sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
         } catch (Exception e) {

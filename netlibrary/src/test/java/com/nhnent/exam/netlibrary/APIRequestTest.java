@@ -11,7 +11,7 @@ import static junit.framework.Assert.assertEquals;
  */
 public class APIRequestTest {
 
-    private static final String TEST_ROOT = "http://www.mocky.io/v2/5185415ba171ea3a00704eed";
+    private static final String TEST_ROOT = "https://jsonplaceholder.typicode.com/";
     private static final String SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/";
     private static final String RELATED_URL = "http://en.wikipedia.org/api/rest_v1/page/related/";
 
@@ -27,7 +27,7 @@ public class APIRequestTest {
         request.send(new APIRequest.OnResultListener() {
             @Override
             public void onResult(int errorCode, String result) {
-                System.out.println("errorCode: " + errorCode + ", result: " + result);
+                System.out.println(String.format("errorCode: %d, result: %s", errorCode, result));
                 assertEquals(ErrorCode.NO_ERROR, errorCode);
                 signal.countDown();
             }
@@ -50,7 +50,7 @@ public class APIRequestTest {
         request.send(new APIRequest.OnResultListener() {
             @Override
             public void onResult(int errorCode, String result) {
-                System.out.println("errorCode: " + errorCode + ", result: " + result);
+                System.out.println(String.format("errorCode: %d, result: %s", errorCode, result));
                 assertEquals(ErrorCode.NO_ERROR, errorCode);
                 signal.countDown();
             }
@@ -64,17 +64,85 @@ public class APIRequestTest {
     }
 
     @Test
-    public void methodTest() {
-        APIRequest APIRequest = new APIRequest.APIRequestBuilder(TEST_ROOT)
-                .method(HttpMethod.GET)
+    public void postMethodTest() {
+        final CountDownLatch signal = new CountDownLatch(1);
+
+        APIRequest APIRequest = new APIRequest.APIRequestBuilder(TEST_ROOT + "posts")
+                .method(HttpMethod.POST)
+                .body("data: {\n" +
+                        "    title: 'foo',\n" +
+                        "    body: 'bar',\n" +
+                        "    userId: 1\n" +
+                        "  }")
                 .create();
 
         APIRequest.send(new APIRequest.OnResultListener() {
             @Override
             public void onResult(int errorCode, String result) {
-                System.out.println("errorCode: " + errorCode + ", result: " + result);
+                System.out.println(String.format("errorCode: %d, result: %s", errorCode, result));
                 assertEquals(ErrorCode.NO_ERROR, errorCode);
+                signal.countDown();
             }
         });
+
+        try {
+            signal.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void putMethodTest() {
+        final CountDownLatch signal = new CountDownLatch(1);
+
+        APIRequest APIRequest = new APIRequest.APIRequestBuilder(TEST_ROOT + "posts")
+                .method(HttpMethod.PUT)
+                .body("data: {\n" +
+                        "    id: 4,\n" +
+                        "    title: 'foo_fix',\n" +
+                        "    body: 'bar_fix',\n" +
+                        "    userId: 1\n" +
+                        "  }")
+                .create();
+
+        APIRequest.send(new APIRequest.OnResultListener() {
+            @Override
+            public void onResult(int errorCode, String result) {
+                System.out.println(String.format("errorCode: %d, result: %s", errorCode, result));
+                assertEquals(ErrorCode.NO_ERROR, errorCode);
+                signal.countDown();
+            }
+        });
+
+        try {
+            signal.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void deleteMethodTest() {
+        final CountDownLatch signal = new CountDownLatch(1);
+
+        APIRequest APIRequest = new APIRequest.APIRequestBuilder(TEST_ROOT + "posts/1")
+                .method(HttpMethod.DELETE)
+                .create();
+
+        APIRequest.send(new APIRequest.OnResultListener() {
+            @Override
+            public void onResult(int errorCode, String result) {
+                System.out.println(String.format("errorCode: %d, result: %s", errorCode, result));
+                assertEquals(ErrorCode.NO_ERROR, errorCode);
+                signal.countDown();
+            }
+        });
+
+        try {
+            signal.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
