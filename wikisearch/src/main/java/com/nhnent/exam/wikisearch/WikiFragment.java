@@ -33,6 +33,9 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Created by gradler on 19/08/2017.
+ */
 public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelectedListener {
 
     private static final String TAG = WikiFragment.class.getSimpleName();
@@ -178,7 +181,6 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
     private void initSwipeRefreshLayout(View view) {
         mSwipeRefreshLayout = view.findViewById(R.id.wiki_swipe_refresh_layout);
         mSwipeRefreshLayout.setEnabled(false);
-        // TODO: You need to implements custom progress view
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {

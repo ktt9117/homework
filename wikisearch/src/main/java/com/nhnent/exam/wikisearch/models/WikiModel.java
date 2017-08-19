@@ -13,12 +13,6 @@ public class WikiModel {
 
     public WikiModel() {}
 
-    public WikiModel(String thumbnailUrl, String displayTitle, String extractText) {
-        this.thumbnailUrl = thumbnailUrl;
-        this.displayTitle = displayTitle;
-        this.extractText = extractText;
-    }
-
     public String getThumbnailUrl() {
         return thumbnailUrl;
     }

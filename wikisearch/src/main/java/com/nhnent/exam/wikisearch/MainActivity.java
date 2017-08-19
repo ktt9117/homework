@@ -9,6 +9,9 @@ import android.view.MenuItem;
 
 import com.nhnent.exam.netlibrary.ImageLoader;
 
+/**
+ * Created by gradler on 18/08/2017.
+ */
 public class MainActivity extends AppCompatActivity implements WikiFragment.OnFragmentInteractionListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
