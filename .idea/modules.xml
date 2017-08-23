@@ -5,7 +5,6 @@
       <module fileurl="file://$PROJECT_DIR$/homework.iml" filepath="$PROJECT_DIR$/homework.iml" />
       <module fileurl="file://$PROJECT_DIR$/netlibrary/netlibrary.iml" filepath="$PROJECT_DIR$/netlibrary/netlibrary.iml" />
       <module fileurl="file://$PROJECT_DIR$/wikisearch/wikisearch.iml" filepath="$PROJECT_DIR$/wikisearch/wikisearch.iml" />
-      <module fileurl="file://$PROJECT_DIR$/wikisearch/wikisearch.iml" filepath="$PROJECT_DIR$/wikisearch/wikisearch.iml" />
     </modules>
   </component>
 </project>

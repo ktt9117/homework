@@ -5,6 +5,14 @@ package com.nhnent.exam.wikisearch.models;
  */
 
 public class WikiModel {
+
+    public interface Key {
+        String THUMBNAIL = "thumbnail";
+        String DISPLAY_TITLE = "displaytitle";
+        String EXTRACT = "extract";
+        String SOURCE = "source";
+    }
+
     private String thumbnailUrl;
     private String displayTitle;
     private String extractText;

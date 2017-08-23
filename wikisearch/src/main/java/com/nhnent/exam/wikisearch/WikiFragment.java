@@ -246,24 +246,22 @@ public class WikiFragment extends Fragment implements WikiAdapter.OnItemSelected
     private WikiModel convertModel(JSONObject json) {
         try {
             WikiModel model = new WikiModel();
-            String displayTitle = json.getString("displaytitle");
+            String displayTitle = json.getString(WikiModel.Key.DISPLAY_TITLE);
             if (!TextUtils.isEmpty(displayTitle)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    String convertedTitle = Html.fromHtml(displayTitle, Html.FROM_HTML_MODE_COMPACT).toString();
-                    model.setDisplayTitle(convertedTitle);
+                    model.setDisplayTitle(Html.fromHtml(displayTitle,
+                            Html.FROM_HTML_MODE_COMPACT).toString());
                 } else {
                     model.setDisplayTitle(Html.fromHtml(displayTitle).toString());
                 }
             }
-            Log.i(TAG, "[convertModel] displayTitle: " + model.getDisplayTitle());
-            model.setExtractText(json.getString("extract"));
-            Log.i(TAG, "[convertModel] extract: " + model.getExtractText());
-            if (json.has("thumbnail")) {
-                JSONObject jsonThumbnail = json.getJSONObject("thumbnail");
-                model.setThumbnailUrl((jsonThumbnail.getString("source")));
-                Log.i(TAG, "[convertModel] thumbnailUrl: " + model.getThumbnailUrl());
+
+            model.setExtractText(json.getString(WikiModel.Key.EXTRACT));
+            if (json.has(WikiModel.Key.THUMBNAIL)) {
+                JSONObject jsonThumbnail = json.getJSONObject(WikiModel.Key.THUMBNAIL);
+                model.setThumbnailUrl(jsonThumbnail.getString(WikiModel.Key.SOURCE));
             } else {
-                Log.i(TAG, "[convertModel] it has no thumbnailUrl");
+                Log.i(TAG, "It has no thumbnailUrl");
             }
 
             return model;
